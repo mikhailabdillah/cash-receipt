@@ -16,7 +16,7 @@ export async function createDebtAction(_: unknown, formData: FormData) {
     return { error: "Sesi kamu telah berakhir. Silakan login kembali." };
   }
 
-  const type = formData.get("type") as unknown as Debt;
+  const type = formData.get("type") as unknown as Debt["type"];
   const counterpart_name = (formData.get("counterpart_name") as string).trim();
   const amountStr = formData.get("amount") as string;
   const due_date = formData.get("due_date") as string;
@@ -73,15 +73,11 @@ export async function updateDebtAction(_: unknown, formData: FormData) {
   }
 
   const id = formData.get("id") as string;
-  const type = formData.get("type") as unknown as Debt;
+  const type = formData.get("type") as unknown as Debt["type"];
   const counterpart_name = (formData.get("counterpart_name") as string).trim();
   const amountStr = formData.get("amount") as string;
   const due_date = formData.get("due_date") as string;
   const note = (formData.get("note") as string).trim();
-
-  if (!type) {
-    return { error: "Pilih tipe catatan yang valid." };
-  }
 
   if (!counterpart_name) {
     return { error: "Nama orang wajib diisi." };
@@ -101,7 +97,7 @@ export async function updateDebtAction(_: unknown, formData: FormData) {
     counterpart_name,
     due_date: due_date || null,
     note: note || null,
-    type,
+    type: type || "owed_to_me",
   };
 
   const { error } = await supabase
@@ -115,6 +111,7 @@ export async function updateDebtAction(_: unknown, formData: FormData) {
     return { error: "Gagal memperbarui catatan utang." };
   }
 
+  revalidatePath("/dashboard");
   refresh();
   return { success: true };
 }

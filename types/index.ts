@@ -19,7 +19,7 @@ interface DebtInsert {
   id?: string;
   note?: string | null;
   settled_at?: string | null;
-  type: Debt;
+  type: Debt["type"];
   updated_at?: string;
   user_id: string;
 }
@@ -32,7 +32,7 @@ interface DebtUpdate {
   id?: string;
   note?: string | null;
   settled_at?: string | null;
-  type?: Debt;
+  type?: Debt["type"];
   updated_at?: string;
   user_id?: string;
 }

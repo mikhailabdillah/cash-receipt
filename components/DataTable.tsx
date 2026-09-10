@@ -22,6 +22,13 @@ import {
 } from "./ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "./ui/field";
 import { Input } from "./ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { Spinner } from "./ui/spinner";
 import {
   Table,
@@ -32,7 +39,6 @@ import {
   TableRow,
 } from "./ui/table";
 import { Textarea } from "./ui/textarea";
-import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 
 const DataTable = ({ initialDebt }: { initialDebt: Debt[] }) => (
   <div>
@@ -52,7 +58,7 @@ const DataTable = ({ initialDebt }: { initialDebt: Debt[] }) => (
         {initialDebt.map((item) => (
           <TableRow key={item.id}>
             <TableCell>
-              {item.type === "owed_to_me" ? "Hutang" : "Piutang"}
+              {item.type === "owed_to_me" ? "Dihutang" : "Hutang Saya"}
             </TableCell>
             <TableCell>
               {Intl.NumberFormat("id-ID", {
@@ -109,10 +115,11 @@ const ToggleStatus = ({ item }: { item: Debt }) => {
       <Button
         className={cn(
           isSettled
-            ? "bg-green-100 font-bold text-green-700 dark:bg-green-950 dark:text-green-300"
-            : "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"
+            ? "bg-green-100 font-bold text-green-700 hover:bg-green-100 dark:bg-green-950 dark:text-green-300"
+            : "bg-red-50 text-red-700 hover:bg-red-50 dark:bg-red-950 dark:text-red-300"
         )}
         disabled={isPending}
+        size={"xs"}
         type="submit"
       >
         {isPending ? <Spinner data-icon="inline-start" /> : null}
@@ -128,17 +135,38 @@ const ToggleStatus = ({ item }: { item: Debt }) => {
 const EditItem = ({ item }: { item: Debt }) => {
   const [state, formAction] = useActionState(updateDebtAction, null);
   const [open, setOpen] = useState(false);
-  const [type, setType] = useState<Debt["type"]>(item.type);
-
-  const handleToggle = useCallback((value: string[]) => {
-    setType(value[0] as Debt["type"]);
-  }, []);
+  const [type, setType] = useState<Debt["type"] | null>(item.type);
+  const [counterpart_name, setCounterpartName] = useState<string>(
+    item.counterpart_name
+  );
+  const [amount, setAmount] = useState<number>(item.amount);
+  const [note, setNote] = useState<string | undefined>(item.note);
 
   useEffect(() => {
     if (state?.success) {
       setOpen(false);
     }
   }, [state?.success]);
+
+  const handleChangeType = useCallback((value: Debt["type"] | null) => {
+    setType(value);
+  }, []);
+
+  const handleChangeInput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const { name, value } = e.target;
+      if (name === "counterpart_name") {
+        setCounterpartName(value);
+      }
+      if (name === "amount") {
+        setAmount(Number(value));
+      }
+      if (name === "note") {
+        setNote(value);
+      }
+    },
+    []
+  );
 
   return (
     <Dialog onOpenChange={setOpen} open={open}>
@@ -153,59 +181,48 @@ const EditItem = ({ item }: { item: Debt }) => {
         <DialogHeader>
           <DialogTitle className={"text-2xl"}>Edit Catatan Utang</DialogTitle>
         </DialogHeader>
-        <form
-          // biome-ignore lint/performance/noJsxPropsBind: <>
-          // biome-ignore lint/suspicious/useAwait: <>
-          action={async (formData) => {
-            formAction(formData);
-          }}
-        >
+        <form action={formAction}>
           <input name="id" type="hidden" value={item.id} />
-          <input name="type" type="hidden" value={item.type} />
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="settled_at">Tipe</FieldLabel>
-              <ToggleGroup
-                className="grid w-full grid-cols-2"
-                onValueChange={handleToggle}
-                value={[type]}
-                variant={"outline"}
-              >
-                <ToggleGroupItem
-                  aria-label="Toggle owed to me"
-                  value="owed_to_me"
-                >
-                  Hutang
-                </ToggleGroupItem>
-                <ToggleGroupItem aria-label="Toggle owed by me" value="i_owe">
-                  Piutang
-                </ToggleGroupItem>
-              </ToggleGroup>
+              <Select name="type" onValueChange={handleChangeType} value={type}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih tipe kasbon" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="owed_to_me">Dihutang</SelectItem>
+                  <SelectItem value="i_owe">Hutang Saya</SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
             <Field>
               <FieldLabel>Nama Rekanan</FieldLabel>
               <Input
-                defaultValue={item.counterpart_name}
                 name="counterpart_name"
+                onChange={handleChangeInput}
+                required
                 type="text"
+                value={counterpart_name}
               />
             </Field>
             <Field>
               <FieldLabel htmlFor="amount">Jumlah</FieldLabel>
               <Input
-                defaultValue={item.amount}
                 id="amount"
                 name="amount"
-                type="text"
+                onChange={handleChangeInput}
+                type="number"
+                value={amount}
               />
             </Field>
             <Field>
               <FieldLabel htmlFor="note">Catatan</FieldLabel>
               <Textarea
-                defaultValue={item.note}
                 id="note"
                 name="note"
+                onChange={handleChangeInput}
                 rows={4}
+                value={note || ""}
               />
             </Field>
           </FieldGroup>
@@ -243,13 +260,7 @@ const DeleteItem = ({ id }: { id: string }) => {
         </DialogDescription>
         <DialogFooter>
           <DialogClose render={<Button variant="outline">Batal</Button>} />
-          <form
-            // biome-ignore lint/performance/noJsxPropsBind: <>
-            // biome-ignore lint/suspicious/useAwait: <>
-            action={async () => {
-              deleteAction();
-            }}
-          >
+          <form action={deleteAction}>
             <Button type="submit" variant="destructive">
               Hapus
             </Button>

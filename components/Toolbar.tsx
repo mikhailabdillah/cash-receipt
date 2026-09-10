@@ -2,7 +2,7 @@
 
 import { PlusIcon, RefreshCwIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { createDebtAction } from "@/app/actions/debts";
 import { Button } from "./ui/button";
 import {
@@ -28,18 +28,25 @@ import { Textarea } from "./ui/textarea";
 const Toolbar = () => {
   const router = useRouter();
 
+  const [state, formAction, isPending] = useActionState(createDebtAction, null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (state?.success) {
+      setOpen(false);
+    }
+  }, [state?.success]);
+
   function handleClick() {
     router.refresh();
   }
-
-  const [state, formAction, isPending] = useActionState(createDebtAction, null);
 
   return (
     <div className="mb-12 flex justify-end gap-2">
       <Button onClick={handleClick} variant="outline">
         <RefreshCwIcon />
       </Button>
-      <Dialog>
+      <Dialog onOpenChange={setOpen} open={open}>
         <DialogTrigger render={<Button />}>
           <PlusIcon />
           Buat Kasbon
@@ -57,8 +64,8 @@ const Toolbar = () => {
                     <SelectValue placeholder="Pilih tipe kasbon" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="owed_to_me">Hutang</SelectItem>
-                    <SelectItem value="i_owe">Piutang</SelectItem>
+                    <SelectItem value="owed_to_me">Dihutang</SelectItem>
+                    <SelectItem value="i_owe">Hutang Saya</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>
