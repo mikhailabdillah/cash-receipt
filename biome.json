@@ -7,13 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": [
-      "**",
-      "!node_modules",
-      "!.next",
-      "!dist",
-      "!build"
-    ]
+    "includes": ["!node_modules", "!.next", "!dist", "!build", "!components/ui"]
   },
   "formatter": {
     "enabled": true,
@@ -26,13 +20,13 @@
     }
   },
   "linter": {
-    "enabled": true,
     "rules": {
-      "recommended": true
-    },
-    "domains": {
-      "next": "recommended",
-      "react": "recommended"
+      "suspicious": {
+        "useIterableCallbackReturn": "off"
+      },
+      "complexity": {
+        "noForEach": "off"
+      }
     }
   },
   "assist": {

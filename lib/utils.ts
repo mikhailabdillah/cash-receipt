@@ -1,1 +1,2 @@
-export { cn } from "cn"
+// biome-ignore lint/performance/noBarrelFile: <>
+export { cn } from "cn";

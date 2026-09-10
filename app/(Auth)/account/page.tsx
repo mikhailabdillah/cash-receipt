@@ -1,11 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from "@/lib/supabase/server";
 
 export default async function Account() {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
-  const { data: claimsData } = await supabase.auth.getClaims()
+  const { data: claimsData } = await supabase.auth.getClaims();
 
-  return <section>
-    {claimsData?.claims.email}
-  </section>
+  return <section>{claimsData?.claims.email}</section>;
 }
