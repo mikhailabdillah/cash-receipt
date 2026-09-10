@@ -34,7 +34,7 @@ export default function Statistics({ initialDebts }: { initialDebts: Debt[] }) {
   }
 
   return (
-    <div className="mb-8 grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3">
+    <div className="mt-8 mb-8 grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3">
       {/* 1. Total dihutang ke saya */}
       <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:shadow-md sm:p-6">
         <div className="mb-3 flex items-center justify-between">
