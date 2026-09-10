@@ -20,7 +20,7 @@ export default async function Layout({
   return (
     <SidebarProvider>
       <AppSidebar userData={claimsData?.claims.email} />
-      <main className="flex w-full flex-col bg-neutral-100 p-4 shadow-md md:p-6">
+      <main className="flex w-full flex-col bg-neutral-100 shadow-md md:p-6">
         <div className="flex justify-between">
           <SidebarTrigger />
           <Signout />

@@ -12,7 +12,7 @@ import { login, signup } from "./actions";
 export default function LoginPage() {
   return (
     <section className="flex h-screen items-center justify-center">
-      <div className="container mx-auto max-w-xl">
+      <div className="container mx-auto max-w-xl px-4">
         <div className={"flex flex-col gap-6"}>
           <form>
             <FieldGroup>
@@ -44,7 +44,7 @@ export default function LoginPage() {
                   Masuk
                 </Button>
               </Field>
-              <FieldSeparator>Or</FieldSeparator>
+              <FieldSeparator>atau</FieldSeparator>
               <Field className="grid">
                 <Button formAction={signup} type="submit" variant="outline">
                   Buat Akun
