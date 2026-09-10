@@ -2,13 +2,20 @@
 
 import { cn } from "cn";
 import { PencilIcon, Trash2Icon } from "lucide-react";
-import { useActionState, useCallback, useEffect, useState } from "react";
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   deleteDebtAction,
   toggleSettleDebtAction,
   updateDebtAction,
 } from "@/app/actions/debts";
 import type { Debt } from "@/types";
+import Search from "./Filters/Search";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -40,66 +47,86 @@ import {
 } from "./ui/table";
 import { Textarea } from "./ui/textarea";
 
-const DataTable = ({ initialDebt }: { initialDebt: Debt[] }) => (
-  <div>
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Tipe</TableHead>
-          <TableHead>Jumlah</TableHead>
-          <TableHead>Rekanan</TableHead>
-          <TableHead>Dibuat</TableHead>
-          <TableHead>Diperbaharui</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Aksi</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {initialDebt.map((item) => (
-          <TableRow key={item.id}>
-            <TableCell>
-              {item.type === "owed_to_me" ? "Dihutang" : "Hutang Saya"}
-            </TableCell>
-            <TableCell>
-              {Intl.NumberFormat("id-ID", {
-                currency: "IDR",
-                style: "currency",
-              }).format(item.amount)}
-            </TableCell>
-            <TableCell>{item.counterpart_name}</TableCell>
-            <TableCell>
-              <time dateTime={item.created_at}>
-                {new Date(item.created_at).toLocaleDateString("id-ID", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </time>
-            </TableCell>
-            <TableCell>
-              <time dateTime={item.updated_at}>
-                {new Date(item.updated_at).toLocaleDateString("id-ID", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </time>
-            </TableCell>
-            <TableCell>
-              <ToggleStatus item={item} />
-            </TableCell>
-            <TableCell>
-              <div className="flex gap-2">
-                <EditItem item={item} />
-                <DeleteItem id={item.id} />
-              </div>
-            </TableCell>
+const DataTable = ({ initialDebt }: { initialDebt: Debt[] }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredDebts = useMemo(
+    () =>
+      initialDebt.filter((debt) => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          debt.counterpart_name.toLowerCase().includes(searchLower) ||
+          debt.amount.toString().includes(searchLower) ||
+          debt.type.toLowerCase().includes(searchLower)
+        );
+      }),
+    [searchTerm, initialDebt]
+  );
+
+  return (
+    <div>
+      <div className="flex">
+        <Search onSearch={setSearchTerm} searchTerm={searchTerm} />
+      </div>
+      <Table className="mt-6">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Tipe</TableHead>
+            <TableHead>Jumlah</TableHead>
+            <TableHead>Rekanan</TableHead>
+            <TableHead>Dibuat</TableHead>
+            <TableHead>Diperbaharui</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Aksi</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  </div>
-);
+        </TableHeader>
+        <TableBody>
+          {filteredDebts.map((item) => (
+            <TableRow key={item.id}>
+              <TableCell>
+                {item.type === "owed_to_me" ? "Dihutang" : "Hutang Saya"}
+              </TableCell>
+              <TableCell>
+                {Intl.NumberFormat("id-ID", {
+                  currency: "IDR",
+                  style: "currency",
+                }).format(item.amount)}
+              </TableCell>
+              <TableCell>{item.counterpart_name}</TableCell>
+              <TableCell>
+                <time dateTime={item.created_at}>
+                  {new Date(item.created_at).toLocaleDateString("id-ID", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </time>
+              </TableCell>
+              <TableCell>
+                <time dateTime={item.updated_at}>
+                  {new Date(item.updated_at).toLocaleDateString("id-ID", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </time>
+              </TableCell>
+              <TableCell>
+                <ToggleStatus item={item} />
+              </TableCell>
+              <TableCell>
+                <div className="flex gap-2">
+                  <EditItem item={item} />
+                  <DeleteItem id={item.id} />
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+};
 
 const ToggleStatus = ({ item }: { item: Debt }) => {
   const isSettled = !!item.settled_at;
