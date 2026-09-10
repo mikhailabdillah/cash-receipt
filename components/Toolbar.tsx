@@ -59,7 +59,7 @@ const Toolbar = () => {
           <form action={formAction}>
             <FieldGroup>
               <Field>
-                <Select name="type">
+                <Select name="type" required>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih tipe kasbon" />
                   </SelectTrigger>
@@ -71,7 +71,11 @@ const Toolbar = () => {
               </Field>
               <Field>
                 <FieldLabel>Rekanan</FieldLabel>
-                <Input name="counterpart_name" placeholder="Nama rekanan" />
+                <Input
+                  name="counterpart_name"
+                  placeholder="Nama rekanan"
+                  required
+                />
               </Field>
               <Field>
                 <FieldLabel>Jumlah</FieldLabel>
@@ -87,7 +91,7 @@ const Toolbar = () => {
               </Field>
               <Field>
                 <FieldLabel>Tanggal Jatuh Tempo</FieldLabel>
-                <Input name="due_date" type="date" />
+                <Input name="due_date" required type="date" />
               </Field>
             </FieldGroup>
 
