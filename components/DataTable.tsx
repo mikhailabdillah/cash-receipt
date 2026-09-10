@@ -133,7 +133,7 @@ const ToggleStatus = ({ item }: { item: Debt }) => {
 };
 
 const EditItem = ({ item }: { item: Debt }) => {
-  const [state, formAction] = useActionState(updateDebtAction, null);
+  const [state, formAction, isPending] = useActionState(updateDebtAction, null);
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<Debt["type"] | null>(item.type);
   const [counterpart_name, setCounterpartName] = useState<string>(
@@ -226,8 +226,9 @@ const EditItem = ({ item }: { item: Debt }) => {
               />
             </Field>
           </FieldGroup>
-          <Button className={"mt-6 w-full"} type="submit">
-            Simpan
+          <Button className={"mt-6 w-full"} disabled={isPending} type="submit">
+            {isPending ? <Spinner data-icon="inline-start" /> : null}
+            {isPending ? "Menyimpan..." : "Simpan"}
           </Button>
           <p aria-live="polite" className="sr-only" role="status">
             {state?.error}
