@@ -1,4 +1,5 @@
 import DataTable from "@/components/DataTable";
+import Statistics from "@/components/Statistics";
 import Toolbar from "@/components/Toolbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
@@ -21,10 +22,11 @@ export default async function Account() {
   const items = dataItems as Debt[];
 
   return (
-    <section className="container mx-auto px-4 py-20">
+    <section className="container mx-auto px-4 py-12">
       <h1 className="font-bold text-2xl">Kasbon</h1>
       <p className="mt-4">Email: {user?.user?.email}</p>
 
+      <Statistics initialDebts={items} />
       <Toolbar />
       <Card>
         <CardHeader>
