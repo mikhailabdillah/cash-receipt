@@ -2,148 +2,194 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { Debt } from "@/types";
 
-export async function GET(request: NextRequest) {
-  const supabase = await createClient();
-
-  // Check auth first — RLS will also enforce this, but failing early
-  // gives a clearer error than an empty result set
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // biome-ignore lint/style/useDestructuring: <>
-  const searchParams = request.nextUrl.searchParams;
-  const status = searchParams.get("status"); // 'settled' | 'unsettled' | null
-  const type = searchParams.get("type"); // 'owed_to_me' | 'i_owe' | null
-
-  // Validate query params before hitting the DB
-  const validStatuses = ["settled", "unsettled"];
-  const validTypes = ["owed_to_me", "i_owe"];
-
-  if (status && !validStatuses.includes(status)) {
-    return NextResponse.json(
-      { error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
-      { status: 400 }
-    );
-  }
-
-  if (type && !validTypes.includes(type)) {
-    return NextResponse.json(
-      { error: `Invalid type. Must be one of: ${validTypes.join(", ")}` },
-      { status: 400 }
-    );
-  }
-
-  let query = supabase
-    .from("debts")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (type) {
-    query = query.eq("type", type);
-  }
-
-  if (status === "settled") {
-    query = query.not("settled_at", "is", null);
-  } else if (status === "unsettled") {
-    query = query.is("settled_at", null);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("Error fetching debts:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch debts" },
-      { status: 500 }
-    );
-  }
-
-  return NextResponse.json({ data });
+interface DebtInsert {
+  amount: number;
+  counterpart_name: string;
+  due_date: string;
+  note?: string;
+  type: Debt["type"];
+  user_id: string;
 }
 
-export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  let body: Debt;
+/**
+ * GET /api/debts
+ * Returns user debts, optionally filtered by ?status= and ?type=
+ */
+export async function GET(request: NextRequest) {
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+    const supabase = await createClient();
 
-  const { type, counterpart_name, amount, note, due_date } = body;
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-  // Validation
-  const validTypes = ["owed_to_me", "i_owe"];
-  if (!(type && validTypes.includes(type))) {
+    if (authError || !user) {
+      return NextResponse.json(
+        {
+          error:
+            "Sesi kamu tidak valid atau sudah berakhir. Silakan login kembali.",
+        },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const statusParam = searchParams.get("status")?.toLowerCase();
+    const typeParam = searchParams.get("type")?.toLowerCase();
+
+    let query = supabase
+      .from("debts")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    // Filter by status: 'lunas' / 'settled' vs 'belum' / 'unsettled'
+    if (statusParam === "settled" || statusParam === "lunas") {
+      query = query.not("settled_at", "is", null);
+    } else if (
+      statusParam === "unsettled" ||
+      statusParam === "belum" ||
+      statusParam === "belum_lunas"
+    ) {
+      query = query.is("settled_at", null);
+    }
+
+    // Filter by type: 'owed_to_me' / 'dihutang' vs 'i_owe' / 'hutang'
+    if (typeParam === "owed_to_me" || typeParam === "dihutang") {
+      query = query.eq("type", "owed_to_me");
+    } else if (typeParam === "i_owe" || typeParam === "hutang") {
+      query = query.eq("type", "i_owe");
+    }
+
+    const { data: debts, error } = await query;
+
+    if (error) {
+      console.error("Error fetching debts:", error);
+      return NextResponse.json(
+        { error: "Gagal mengambil data catatan utang. Silakan coba lagi." },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ data: debts || [] }, { status: 200 });
+  } catch (error) {
+    console.error("Unexpected error in GET /api/debts:", error);
     return NextResponse.json(
-      {
-        error: `type is required and must be one of: ${validTypes.join(", ")}`,
-      },
-      { status: 400 }
-    );
-  }
-
-  if (
-    !counterpart_name ||
-    typeof counterpart_name !== "string" ||
-    counterpart_name.trim() === ""
-  ) {
-    return NextResponse.json(
-      { error: "counterpart_name is required" },
-      { status: 400 }
-    );
-  }
-
-  if (typeof amount !== "number" || !Number.isInteger(amount) || amount <= 0) {
-    return NextResponse.json(
-      { error: "amount is required and must be a positive integer" },
-      { status: 400 }
-    );
-  }
-
-  if (due_date && Number.isNaN(Date.parse(due_date))) {
-    return NextResponse.json(
-      { error: "due_date must be a valid date" },
-      { status: 400 }
-    );
-  }
-
-  const { data, error } = await supabase
-    .from("debts")
-    .insert({
-      amount,
-      counterpart_name: counterpart_name.trim(),
-      due_date: due_date ?? null,
-      note: note ?? null,
-      type,
-      user_id: user.id,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error("Error creating debt:", error);
-    return NextResponse.json(
-      { error: "Failed to create debt" },
+      { error: "Terjadi kesalahan sistem yang tidak terduga." },
       { status: 500 }
     );
   }
+}
 
-  return NextResponse.json({ data }, { status: 201 });
+/**
+ * POST /api/debts
+ * Creates a new debt entry
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: "Kamu harus login terlebih dahulu untuk menambah catatan." },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json().catch(() => null);
+
+    if (!body || typeof body !== "object") {
+      return NextResponse.json(
+        { error: "Format data JSON tidak valid." },
+        { status: 400 }
+      );
+    }
+
+    const { type, counterpart_name, amount, due_date, note } = body;
+
+    // Input Validation
+    const validTypes: Debt["type"][] = ["owed_to_me", "i_owe"];
+    if (!(type && validTypes.includes(type))) {
+      return NextResponse.json(
+        {
+          error:
+            'Tipe harus diisi antara "Saya dihutang" (owed_to_me) atau "Saya hutang" (i_owe).',
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      !counterpart_name ||
+      typeof counterpart_name !== "string" ||
+      counterpart_name.trim() === ""
+    ) {
+      return NextResponse.json(
+        { error: "Nama orang wajib diisi." },
+        { status: 400 }
+      );
+    }
+
+    const parsedAmount = Number(amount);
+    if (
+      Number.isNaN(parsedAmount) ||
+      !Number.isInteger(parsedAmount) ||
+      parsedAmount <= 0
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Jumlah utang wajib berupa angka bulat positif (dalam Rupiah).",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (note && (typeof note !== "string" || note.length > 200)) {
+      return NextResponse.json(
+        { error: "Catatan tidak boleh melebihi 200 karakter." },
+        { status: 400 }
+      );
+    }
+
+    const insertData: DebtInsert = {
+      amount: parsedAmount,
+      counterpart_name: counterpart_name.trim(),
+      due_date: due_date || new Date().toISOString().split("T")[0],
+      note: note ? note.trim() : null,
+      type,
+      user_id: user.id,
+    };
+
+    const { data: newDebt, error } = await supabase
+      .from("debts")
+      .insert(insertData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating debt:", error);
+      return NextResponse.json(
+        { error: "Gagal menyimpan catatan utang baru." },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      { data: newDebt, message: "Catatan berhasil disimpan." },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Unexpected error in POST /api/debts:", error);
+    return NextResponse.json(
+      { error: "Terjadi kesalahan sistem yang tidak terduga." },
+      { status: 500 }
+    );
+  }
 }

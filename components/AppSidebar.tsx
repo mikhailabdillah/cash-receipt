@@ -1,6 +1,6 @@
 "use client";
 
-import { Command, Frame, PieChart } from "lucide-react";
+import { Command, CreditCardReaderIcon, LandmarkIcon } from "lucide-react";
 import type * as React from "react";
 
 import { NavMain } from "@/components/NavMain";
@@ -15,27 +15,30 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-const data = {
-  navMain: [
-    {
-      icon: Frame,
-      name: "Kasbon",
-      url: "#",
+export function AppSidebar({
+  userData,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & { userData?: string }) {
+  const data = {
+    navMain: [
+      {
+        icon: LandmarkIcon,
+        name: "Kasbon",
+        url: "#",
+      },
+      {
+        icon: CreditCardReaderIcon,
+        name: "Pelunasan",
+        url: "#",
+      },
+    ],
+    user: {
+      avatar: "/avatars/shadcn.jpg",
+      email: userData,
+      name: "shadcn",
     },
-    {
-      icon: PieChart,
-      name: "Reimburse",
-      url: "#",
-    },
-  ],
-  user: {
-    avatar: "/avatars/shadcn.jpg",
-    email: "m@example.com",
-    name: "shadcn",
-  },
-};
+  };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
